@@ -269,10 +269,17 @@ export default class Hyperions {
 	}
 
 	private hasHyperionsAttributes(item: HTMLElement): boolean {
-		return Array.from(item.attributes).some((attr) => attr.name.startsWith('hyp:'))
+		return Array.from(item.attributes).some((attr) => attr.name.startsWith('hyp:') || ATTRIBUTES.includes(attr.name.replace('data-', '') as 'params'))
 	}
 
 	private getElementActions(item: HTMLElement): Array<string> {
+		if (item.dataset.input || item.dataset.output || item.dataset.params) {
+			return [
+				'params',
+				'input',
+				'output',
+			]
+		}
 		return Array.from(item.attributes).filter((attr) => !attr.name.startsWith('hyp:action')).map((it) => it.name).sort()
 	}
 
@@ -286,7 +293,7 @@ export default class Hyperions {
 
 		// skip if no triggers
 		if (triggers[0] === 'none') {
-			console.log(execOptions.debug, 'setup: trigger set to "none", skipping...')
+			this.dlog(execOptions, 'setup: trigger set to "none", skipping...')
 			return
 		}
 
@@ -357,7 +364,7 @@ export default class Hyperions {
 		}
 
 		if (trigger === 'none') {
-			console.log(options.debug, 'setup: trigger set to "none", skipping...')
+			this.dlog('setup: trigger set to "none", skipping...')
 			return { triggers: ['none'], modifiers }
 		}
 
@@ -375,7 +382,9 @@ export default class Hyperions {
 		output: null
 	} as const
 
-	private async process(type: keyof typeof this.processes | `hyp:action${number}` | string, it: HTMLElement, baseData?: object, options: Options = {}): Promise<void> {
+	// eslint-disable-next-line complexity
+	private async process(type: keyof typeof this.processes | `hyp:action${number}` | string, it: HTMLElement, baseData?: object, options: Options = this.parseOptions(it)): Promise<void> {
+		this.dlog(options, 'processing', type)
 		const action = type.startsWith('hyp:') ? it.getAttribute(type) : it.dataset[type]
 		const actions = this.getElementActions(it)
 		const next = type.startsWith('hyp:') ? actions[actions.indexOf(type) + 1] : this.processes[type as 'params']
@@ -647,7 +656,6 @@ export default class Hyperions {
 			let sliced = key.slice(4)
 			if (sliced.startsWith('.')) {
 				sliced = sliced.slice(1)
-				console.log(fromContext, sliced, context)
 				const tmp: unknown = objectGet(fromContext, sliced)
 				return tmp
 			}
@@ -735,7 +743,6 @@ export default class Hyperions {
 		if (element.tagName === 'FORM') {
 			this.dlog(options, 'input: element is a Form, getting inputs as params')
 			const formData = new FormData(element as HTMLFormElement)
-			console.log(formData)
 			formData.forEach((value, key) => {
 				const multi = element.querySelector<HTMLInputElement>(`input[type][name="${key}"]`)?.type === 'checkbox'
 				if (multi) {

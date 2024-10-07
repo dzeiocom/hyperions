@@ -1,6 +1,6 @@
 {
 	"name": "hyperions",
-	"version": "1.0.0",
+	"version": "1.0.0-beta.3",
 	"description": "A central hub for processing and managing complex data sets",
 	"repository": {
 		"type": "git",
@@ -9,19 +9,19 @@
 	"homepage": "https://github.com/dzeiocom/procera",
 	"author": "Aviortheking",
 	"license": "MIT",
-	"main": "./dist/procera.js",
-	"module": "./dist/procera.mjs",
-	"types": "./dist/procera.d.ts",
-	"browser": "./dist/procera.global.js",
+	"main": "./dist/Hyperions.js",
+	"module": "./dist/Hyperions.mjs",
+	"types": "./dist/Hyperions.d.ts",
+	"browser": "./dist/Hyperions.global.js",
 	"exports": {
 		".": {
 			"require": {
-				"types": "./dist/procera.d.ts",
-				"default": "./dist/procera.js"
+				"types": "./dist/Hyperions.d.ts",
+				"default": "./dist/Hyperions.js"
 			},
 			"import": {
-				"types": "./dist/procera.d.mts",
-				"default": "./dist/procera.mjs"
+				"types": "./dist/Hyperions.d.mts",
+				"default": "./dist/Hyperions.mjs"
 			}
 		}
 	},
