@@ -1,6 +1,6 @@
-# Hyperion
+# Hyperions
 
-Hyperion is a library that allow you to make changes to the HTML content by using a mix of `<template />` and `JSON` Reponse from API endpoints
+Hyperions is a library that allow you to make changes to the HTML content by using a mix of `<template />` and `JSON` Reponse from API endpoints
 
 ## Installation
 
@@ -11,8 +11,8 @@ npm i hyperion
 ## Usage
 
 ```js
-import Hyperion from 'hyperion'
-Hyperion.setup()
+import Hyperions from 'hyperion'
+Hyperions.setup()
 ```
 
 ```html
@@ -30,7 +30,7 @@ Hyperion.setup()
 
     data-output="template location|body|this{location} inner|outer|append" <-- Will fill the template, and display it in the location (inner,outer define if it replace or is a child)
     data-output="run:action" <-- will run with param0 being the HTMLElement & param1 being the data in JSON
-    data-output="hyp:query" <-- Will run another Hyperion element by the query
+    data-output="hyp:query" <-- Will run another Hyperions element by the query
 ></button>
 ```
 
@@ -61,7 +61,7 @@ one of the `data-input` or `data-output` MUST be set so that everything work.
 #### data-trigger: (optionnal)
 the different trigger available (default: 'submit' for <form> else 'click' for the rest) (multiple can be used)
 - load: action is run on start
-- once: only run Hyperion once (manual trigger can still happens if `force` is `true`)
+- once: only run Hyperions once (manual trigger can still happens if `force` is `true`)
 - `after:xx`: trigger will defer until xx time of ms passed (allow to dedup requests)
 - HTMLListenerEvent: any HTMLElement event available
 
@@ -86,7 +86,7 @@ note: by using `this` as a prefix it will query relative to the current element 
 
 ### Actions
 
-Actions are elements defined in Hyperion that run code to fetch informations or run custom code
+Actions are elements defined in Hyperions that run code to fetch informations or run custom code
 
 there is two types of actions:
 - input Action
@@ -106,7 +106,7 @@ will search a popup template by using an additionnal attribute `data-template` a
 builtin output actions
 - `reload`: Reload the current page
 
-### Hyperion Class
+### Hyperions Class
 
 - Static
   - setup()
