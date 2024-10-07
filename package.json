@@ -1,0 +1,57 @@
+{
+	"name": "hyperions",
+	"version": "1.0.0",
+	"description": "A central hub for processing and managing complex data sets",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/dzeiocom/procera.git"
+	},
+	"homepage": "https://github.com/dzeiocom/procera",
+	"author": "Aviortheking",
+	"license": "MIT",
+	"main": "./dist/procera.js",
+	"module": "./dist/procera.mjs",
+	"types": "./dist/procera.d.ts",
+	"browser": "./dist/procera.global.js",
+	"exports": {
+		".": {
+			"require": {
+				"types": "./dist/procera.d.ts",
+				"default": "./dist/procera.js"
+			},
+			"import": {
+				"types": "./dist/procera.d.mts",
+				"default": "./dist/procera.mjs"
+			}
+		}
+	},
+	"sideEffects": false,
+	"devDependencies": {
+		"@eslint/js": "^9.12.0",
+		"@stylistic/eslint-plugin": "^2.9.0",
+		"@types/jest": "^29",
+		"eslint": "^8.57.1",
+		"jest": "^29",
+		"jest-sonar-reporter": "^2",
+		"ts-jest": "^29",
+		"ts-node": "^10",
+		"tsup": "^8",
+		"typescript": "^5",
+		"typescript-eslint": "^8.8.0"
+	},
+	"scripts": {
+		"prepublishOnly": "npm run build",
+		"build": "tsup ./src/Hyperions.ts --format cjs,esm --dts --clean && tsup ./src/Hyperions.ts --format iife --global-name Hyperions --sourcemap",
+		"test": "jest --coverage",
+		"lint": "eslint src"
+	},
+	"files": [
+		"dist",
+		"README.md",
+		"package.json",
+		"CHANGELOG.md"
+	],
+	"dependencies": {
+		"@dzeio/object-util": "^1.8.3"
+	}
+}
