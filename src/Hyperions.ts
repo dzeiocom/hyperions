@@ -401,7 +401,7 @@ export default class Hyperions {
 			console.warn(`Hyperions params using "data-${type}" is deprecated, use "hyp:action{number}" instead`)
 		}
 
-		this.dlog(options, 'processing', type)
+		this.dlog(options, 'process: processing', type)
 
 		// get the action text
 		const action = type.startsWith('hyp:') ? it.getAttribute(type) : it.dataset[type]
@@ -558,7 +558,8 @@ export default class Hyperions {
 		// handle data-input, data-output, ...
 		for (const attr of this.getElementActions(it)) {
 			if (attr.startsWith('hyp:')) {
-				it.setAttribute(attr, this.parseValue(it.getAttribute(attr) ?? '', data, context) as string ?? '')
+				const value = it.getAttribute(attr) ?? ''
+				it.setAttribute(attr, this.parseValue(value, data, context) as string ?? value)
 			} else {
 				const value = it.dataset[attr]
 				this.fillAttribute(it, `data-${attr}:${value}`, data, context)
