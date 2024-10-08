@@ -158,7 +158,7 @@ export default class Hyperions {
 		}
 
 		const actions = this.getElementActions(element)
-		const initialTrigger = actions.length > 0 ? actions[0] : 'params'
+		const initialTrigger = actions.length > 0 ? actions[0] : 'input'
 
 		const options = this.parseOptions(element)
 		const { modifiers, triggers } = this.parseTriggers(element)
@@ -249,7 +249,7 @@ export default class Hyperions {
 		this.processIfElse(el, data)
 		this.fillAttributes(el, data, context)
 		// biome-ignore lint/complexity/noForEach: <explanation>
-		el.querySelectorAll<HTMLElement>('[data-attribute],[data-input],[data-output],[data-params]').forEach((it) => { this.fillAttributes(it, data, context) })
+		this.getHyperionsElements(el).forEach((it) => this.fillAttributes(it, data, context))
 
 		// setup the clone to work if it contains Hyperions markup
 		this.init(el)
@@ -288,7 +288,7 @@ export default class Hyperions {
 	}
 
 	private getElementActions(item: HTMLElement): Array<string> {
-		const items = Array.from(item.attributes).filter((attr) => !attr.name.startsWith('hyp:action')).map((it) => it.name).sort()
+		const items = Array.from(item.attributes).filter((attr) => attr.name.startsWith('hyp:action')).map((it) => it.name).sort()
 		if (items.length > 0) {
 			return items
 		}
@@ -398,7 +398,7 @@ export default class Hyperions {
 	private async process(type: keyof typeof this.processes | `hyp:action${number}` | string, it: HTMLElement, baseData?: object, options: Options = this.parseOptions(it)): Promise<void> {
 		// indicate deprection of `data-...` elements
 		if (!type.startsWith('hyp:')) {
-			console.warn(`Hyperions params using "data-${type}" is deprecated`)
+			console.warn(`Hyperions params using "data-${type}" is deprecated, use "hyp:action{number}" instead`)
 		}
 
 		this.dlog(options, 'processing', type)
@@ -551,12 +551,18 @@ export default class Hyperions {
 	 */
 	private fillAttributes(it: HTMLElement, data: object, context: Context) {
 		// get the raw attribute
-		const attrRaw = it.dataset.attribute
+		const attrRaw = it.getAttribute('hyp:attr') || it.getAttribute('hyp:attribute') || it.getAttribute('hyp:attributes') || it.dataset.attribute
+
+
 
 		// handle data-input, data-output, ...
-		for (const attr of ATTRIBUTES) {
-			const value = it.dataset[attr]
-			this.fillAttribute(it, `data-${attr}:${value}`, data, context)
+		for (const attr of this.getElementActions(it)) {
+			if (attr.startsWith('hyp:')) {
+				it.setAttribute(attr, this.parseValue(it.getAttribute(attr) ?? '', data, context) as string ?? '')
+			} else {
+				const value = it.dataset[attr]
+				this.fillAttribute(it, `data-${attr}:${value}`, data, context)
+			}
 		}
 
 		// skip if not contains a data-attribute
