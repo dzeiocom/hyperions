@@ -6,7 +6,7 @@ import raw from './actions/raw'
 import run from './actions/run'
 import template from './actions/template'
 import { ATTRIBUTES } from './consts'
-import type { Action, ActionContext, Context, Events, InputAction, Modifiers, Options, OutputAction } from './types'
+import type { Action, ActionContext, ActionResult, Context, Events, InputAction, Modifiers, Options, OutputAction } from './types'
 import { betterSplit } from './utils'
 
 // export types for external usage
@@ -119,13 +119,16 @@ export default class Hyperions {
 	 * @param context the action context
 	 * @returns get the result of the action
 	 */
-	public async runAction(context: ActionContext): Promise<object | undefined> {
+	public async runAction(context: ActionContext): Promise<ActionResult> {
 		this.dlog(context.options, 'action: running action', context.prefix, context.value)
 		const action = this.actions[context.prefix]
 		if (!action) {
-			return undefined
+			console.error(`action: action ${context.prefix}:${context.value} not found !`)
+			return {
+				continue: false
+			}
 		}
-		return await action(context) as object | undefined
+		return await action(context) ?? {}
 	}
 
 	/**
@@ -454,8 +457,8 @@ export default class Hyperions {
 		}))
 
 
-		if (next) {
-			return this.process(next, it, options.keepParams ? { ...data, ...res } : res ?? {}, options)
+		if ((res.continue ?? true) && next) {
+			return this.process(next, it, options.keepParams ? { ...data, ...res.data } : res.data ?? {}, options)
 		}
 	}
 

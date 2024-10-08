@@ -77,7 +77,18 @@ export interface Modifiers {
 	isForm?: boolean
 }
 
-export type Action = (ctx: ActionContext) => MaybePromise<object | void>
+export interface ActionResult {
+	/**
+	 * The data to pass to the next action
+	 */
+	data?: object
+	/**
+	 * if continue is not set or is set to true the next action will be run
+	 */
+	continue?: boolean
+}
+
+export type Action = (ctx: ActionContext) => MaybePromise<ActionResult | void>
 export type InputAction = (element?: HTMLElement, input?: object, options?: Options) => MaybePromise<object>
 export type OutputAction = (element?: HTMLElement, output?: object, options?: Options) => MaybePromise
 
