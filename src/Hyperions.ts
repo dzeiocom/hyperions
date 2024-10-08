@@ -9,9 +9,9 @@ import { ATTRIBUTES } from './consts'
 import type { Action, ActionContext, Context, Events, InputAction, Modifiers, Options, OutputAction } from './types'
 import { betterSplit } from './utils'
 
+// export types for external usage
 export type * as types from './types'
 export * as utils from './utils'
-
 
 /**
  * A central hub for processing and managing complex data sets
@@ -34,6 +34,15 @@ export default class Hyperions {
 		fill: fill,
 		template: template
 	}
+
+	/**
+	 * @deprecated old inputs/output values are deprecated
+	 */
+	private processes = {
+		params: 'input',
+		input: 'output',
+		output: null
+	} as const
 
 	private constructor() {
 		// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
@@ -68,8 +77,8 @@ export default class Hyperions {
 	/**
 	 * Add a new type of action in Hyperions
 	 *
-	 * @param prefix the prefix to use
-	 * @param ev the function to run
+	 * @param {string} prefix the prefix to use
+	 * @param {Action | null} ev the function to run (if ev is null it will remove the action)
 	 * @returns this
 	 */
 	public addAction(prefix: string, ev: Action | null) {
@@ -82,20 +91,26 @@ export default class Hyperions {
 		return this
 	}
 
+	public getContext(ctx: Omit<ActionContext, 'hyperions' | 'log'>): ActionContext {
+		return {
+			...ctx,
+			hyperions: this,
+			log: (...items: Array<unknown>) => {
+				this.dlog(ctx.options, ...items)
+			},
+		}
+	}
+
 	/**
-	* @deprecated use {@link runAction}
+	* @deprecated use {@link runAction} with the
 	*/
 	public runOutputAction(action: string, ...params: Parameters<OutputAction>) {
-		const ctx: ActionContext = {
-			hyperions: this,
-			log: () => void {},
+		void this.runAction(this.getContext({
 			origin: params[0],
 			data: params[1],
 			options: params[2],
 			prefix: `run:${action}`
-		}
-
-		void this.runAction(ctx)
+		}))
 	}
 
 	/**
@@ -203,7 +218,7 @@ export default class Hyperions {
 		const node = template.content.cloneNode(true) as DocumentFragment | HTMLElement
 
 		if (node.childElementCount > 1) {
-			throw this.makeError(template, 'fill: multiple childs, template MUST contains only one child')
+			throw new Error('fill: multiple childs, template MUST contains only one child')
 		}
 
 		return this.fill(node.firstElementChild as HTMLElement, data, { ...options, path: [] })
@@ -273,14 +288,17 @@ export default class Hyperions {
 	}
 
 	private getElementActions(item: HTMLElement): Array<string> {
-		if (item.dataset.input || item.dataset.output || item.dataset.params) {
+		const items = Array.from(item.attributes).filter((attr) => !attr.name.startsWith('hyp:action')).map((it) => it.name).sort()
+		if (items.length > 0) {
+			return items
+		}
+		if (item.dataset.input || item.dataset.output) {
 			return [
-				'params',
 				'input',
 				'output',
 			]
 		}
-		return Array.from(item.attributes).filter((attr) => !attr.name.startsWith('hyp:action')).map((it) => it.name).sort()
+		return []
 	}
 
 	private setupTrigger(it: HTMLElement) {
@@ -364,7 +382,7 @@ export default class Hyperions {
 		}
 
 		if (trigger === 'none') {
-			this.dlog('setup: trigger set to "none", skipping...')
+			this.dlog(options, 'setup: trigger set to "none", skipping...')
 			return { triggers: ['none'], modifiers }
 		}
 
@@ -376,55 +394,64 @@ export default class Hyperions {
 		return { triggers, modifiers }
 	}
 
-	private processes = {
-		params: 'input',
-		input: 'output',
-		output: null
-	} as const
-
 	// eslint-disable-next-line complexity
 	private async process(type: keyof typeof this.processes | `hyp:action${number}` | string, it: HTMLElement, baseData?: object, options: Options = this.parseOptions(it)): Promise<void> {
+		// indicate deprection of `data-...` elements
+		if (!type.startsWith('hyp:')) {
+			console.warn(`Hyperions params using "data-${type}" is deprecated`)
+		}
+
 		this.dlog(options, 'processing', type)
+
+		// get the action text
 		const action = type.startsWith('hyp:') ? it.getAttribute(type) : it.dataset[type]
+
+		// get the next action
 		const actions = this.getElementActions(it)
 		const next = type.startsWith('hyp:') ? actions[actions.indexOf(type) + 1] : this.processes[type as 'params']
 
+		// parse params
 		let data = baseData
-		this.dlog(options, type, 'processing', it.tagName, 'with data', data)
 
 		if (!data) {
 			data = this.parseParams(it, options)
 		}
 
-		const subpath = it.getAttribute('hyp:path') ?? it.dataset.path
+		this.dlog(options, type, 'processing', it.tagName, 'with data', data)
+
+		// @deprecated
+		const subpath = it.dataset.path
 		if (subpath) {
+			console.warn('data-path is deprecated, use the template attributes instead')
 			this.dlog(options, 'output: output has subpath', subpath, 'getting in params')
 			data = objectGet(data, subpath)!
 			this.dlog(options, 'output: new data from subpath', data)
 		}
 
 		if (!action) {
-			this.dlog(options, `${type}: hyp:${type} not found, skipping...`)
+			this.dlog(options, `process: action "${type}" not found, skipping...`)
 
 			if (next) {
 				return this.process(next as any, it, data, options)
 			}
+
+			this.dlog(options, `process: no next action, finished !`)
 			return
 		}
 
+		// load the params
 		const defaultPrefix = action.includes('/') ? 'get' : 'template'
 		const { prefix = defaultPrefix, value } = this.decodeParam(action)
 
-		const res = await this.runAction({
-			hyperions: this,
-			log: () => void {},
+		// run the specified action
+		const res = await this.runAction(this.getContext({
 			origin: it,
 			value: value,
 			data: data,
 			type: type as 'hyp:action',
 			options: options,
 			prefix: prefix
-		})
+		}))
 
 
 		if (next) {
@@ -586,25 +613,29 @@ export default class Hyperions {
 
 	/**
 	 * decode an Hyperions parameter agenced like this `prefix:value`
-	 * @param str the string to decode
-	 * @returns the decoded string with it's value and prefix
+	 *
+	 * @param {string} str the string to decode
+	 * @returns {{prefix?: string, value: string}} the decoded string with it's value and prefix
 	 */
 	private decodeParam(str: string): { prefix?: string, value: string } {
 		const index = str.indexOf(':')
 
+		// param has not prefix, return the whole string as the value
 		if (index === -1) {
 			return { value: str }
-		} else if (str[index - 1] === '\\') {
+		} else if (str[index - 1] === '\\') { // params skip the ':', return everything as a value
 			return { value: str.slice(0, index - 1) + str.slice(index) }
 		}
 
+		// get the prefix
 		const prefix = str.slice(0, index)
 
-		// handle special case of http/https
+		// handle special case of http/https has a prefix, ignore it
 		if (prefix === 'http' || prefix === 'https') {
 			return { value: str }
 		}
 
+		// separate and return them
 		return { prefix: prefix, value: str.slice(index + 1) }
 	}
 
@@ -668,32 +699,11 @@ export default class Hyperions {
 	}
 
 	/**
-	 * create an Hyperions Error message
-	 *
-	 * @param {HTMLElement} el the {@link HTMLElement} linked to the issue (normally the one containing data-something)
-	 * @param {string} message the message to send
-	 * @param {object|undefined} params the parameters to send with
-	 * @returns {Error} the Final {@link Error} object
-	 */
-	private makeError(el?: HTMLElement, message?: string, params?: object): Error {
-		el?.dispatchEvent(new CustomEvent('hyperion:error', {
-			detail: {
-				error: message,
-				params: params
-			}
-		}))
-		const error = new Error(message)
-		this.emit('error', { error, params })
-		console.error(message, '\nparams:', params, '\nel:', el)
-		return error
-	}
-
-	/**
 	* Debug log
 	* @param context the system context
 	* @param items the items to print
 	*/
-	private dlog(context: Options = {}, ...items: Array<any>) {
+	private dlog(context: Options = {}, ...items: Array<unknown>) {
 		if (context.debug) {
 			console.log(context.debug, ...items)
 		}
@@ -712,7 +722,7 @@ export default class Hyperions {
 		}
 
 		// parse options
-		const declaredOptions = element.dataset.options
+		const declaredOptions = element.getAttribute('hyp:options') || element.dataset.options
 		if (declaredOptions) {
 			const opts = betterSplit(declaredOptions)
 			for (const item of opts) {
@@ -732,35 +742,45 @@ export default class Hyperions {
 		return options
 	}
 
+	/**
+	 * Parse the parameters necessary to run Hyperions
+	 * @param element the element to parse
+	 * @param options the execution options
+	 * @returns the parameters to run Hyperions
+	 */
 	private parseParams(element: HTMLElement, options: Options) {
-		const name = (element as HTMLInputElement).name || element.dataset.name
 		/**
 		 * Setup Params
 		 */
-		const params: object = {}
+		const params: Record<string, unknown> = {}
+
+		// get the element name if set
+		const name = (element as HTMLInputElement).name || element.dataset.name
 
 		// parse form values into input params
 		if (element.tagName === 'FORM') {
-			this.dlog(options, 'input: element is a Form, getting inputs as params')
+			this.dlog(options, 'parseParams: element is a Form, getting inputs as params')
 			const formData = new FormData(element as HTMLFormElement)
+
+			// loop throught each inputs
 			formData.forEach((value, key) => {
 				const multi = element.querySelector<HTMLInputElement>(`input[type][name="${key}"]`)?.type === 'checkbox'
 				if (multi) {
-					(params as any)[key] = formData.getAll(key)
+					params[key] = formData.getAll(key)
 				} else {
-					(params as any)[key] = value
+					params[key] = value
 				}
 			})
-			// parse input value into input param
-		} else if (element.tagName === 'INPUT' && name) {
+		} else if (element.tagName === 'INPUT' && name) { // parse input value into input param
 			this.dlog(options, 'input: element is an Input, getting name and value as param')
 			if ((element as HTMLInputElement).type === 'file') {
-				(params as any)[name] = (element as HTMLInputElement).files
+				params[name] = (element as HTMLInputElement).files
 			} else {
-				(params as any)[name] = (element as HTMLInputElement).value
+				params[name] = (element as HTMLInputElement).value
 			}
 		}
 
+		// @deprecated old usage remaining for compatibility
 		if (element.dataset.params) {
 			this.dlog(options, 'input: element as data-params, parsing them into params')
 			const exchange = betterSplit(element.dataset.params)
@@ -769,7 +789,7 @@ export default class Hyperions {
 				if (!prefix) {
 					continue
 				}
-				(params as any)[prefix] = value
+				params[prefix] = value
 			}
 		}
 

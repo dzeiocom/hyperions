@@ -1,12 +1,12 @@
 {
 	"name": "hyperions",
-	"version": "1.0.0-beta.3",
+	"version": "1.0.0-beta.4",
 	"description": "A central hub for processing and managing complex data sets",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/dzeiocom/procera.git"
+		"url": "https://github.com/dzeiocom/hyperions.git"
 	},
-	"homepage": "https://github.com/dzeiocom/procera",
+	"homepage": "https://github.com/dzeiocom/hyperions",
 	"author": "Aviortheking",
 	"license": "MIT",
 	"main": "./dist/Hyperions.js",

@@ -2,32 +2,61 @@
 export type MaybePromise<T = void> = T | Promise<T>
 import type Hyperions from './Hyperions'
 
-export interface HyperionAttributes {
-	[key: `hyp:action${number}`]: string
+export type HyperionAttributes = HyperionTemplateItemAttributes | HyperionItemAttributes
 
-	'hyp:trigger'?: string
-	'hyp:multiple'?: boolean
-	'hyp:path'?: string
-
-	'hyp:action'?: string
-
-	// deprecated ones
-	'data-input'?: string
-	'data-output'?: string
-	'data-trigger'?: string
-	'data-path'?: string
-	'data-multiple'?: string
-
-	//
-	// TEMPLATE
-	//
-
+export interface HyperionTemplateItemAttributes {
 	'hyp:set'?: string
 	'hyp:loop'?: string
 
 	// deprecated
 	'data-attribute'?: string
 	'data-loop'?: string
+}
+
+export interface HyperionItemAttributes {
+	[key: `hyp:action${number}`]: string
+
+	/**
+	 * Change how Hyperions run on the element
+	 */
+	'hyp:options'?: string
+
+	/**
+	 * Indicate when Hyperions will run
+	 */
+	'hyp:trigger'?: string
+	'hyp:multiple'?: boolean
+
+	'hyp:action'?: string
+
+	/**
+	 * @deprecated use `hyp:action`
+	 */
+	'data-input'?: string
+
+	/**
+	 * @deprecated use `hyp:action1`
+	 */
+	'data-output'?: string
+
+	/**
+	 * @deprecated use `hyp:trigger`
+	 */
+	'data-trigger'?: string
+	/**
+	 * @deprecated use the template attributes
+	 */
+	'data-path'?: string
+
+	/**
+	 * @deprecated use `hyp:multiple`
+	 */
+	'data-multiple'?: string
+
+	/**
+	 * @deprecated use `hyp:options`
+	 */
+	'data-options'?: string
 }
 
 export interface ActionContext {

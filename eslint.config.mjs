@@ -243,6 +243,7 @@ export default [
 			'no-dupe-else-if': 'error',
 			'no-dupe-keys': 'error',
 			'no-duplicate-case': 'error',
+			'no-dynamic-delete': 'warn',
 			'no-empty': [
 				'error',
 				{
