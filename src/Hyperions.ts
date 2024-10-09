@@ -21,6 +21,8 @@ export default class Hyperions {
 
 	private events: Partial<Record<keyof Events, Array<Events[keyof Events]>>> = {}
 
+	private loaded = false
+
 	private actions: Record<string, Action> = {
 		run: run,
 		hyp: hyp,
@@ -50,14 +52,34 @@ export default class Hyperions {
 			throw new Error('multiple instance of hyperion cannot live together !')
 		}
 		console.log('Setting up Hyperions')
-		this.init()
+
+		// @deprecated
+		setTimeout(() => {
+			if (!this.loaded) {
+				console.warn('auto loading of the library is deprecated, run `.load()` after adding your actions')
+				this.load()
+			}
+		}, 100)
 	}
+
 
 	/**
 	 * setup the library for usage
 	 */
 	public static setup(): Hyperions {
 		return Hyperions.instance
+	}
+
+	/**
+	 * Load the library
+	 */
+	public load(): this {
+		if (this.loaded) {
+			return this
+		}
+		this.loaded = true
+		this.init()
+		return this
 	}
 
 	/**
@@ -236,16 +258,16 @@ export default class Hyperions {
 	 */
 	public fill(el: HTMLElement, data: object, context: Context = { path: [] }) {
 		this.dlog(context, 'fill: filling', el, data)
-		if (el.dataset.loop) {
+		if (el.dataset.loop || el.getAttribute('hyp:loop')) {
 			this.dlog(context, 'fill: root loop detected', el)
 			this.fillLoop(el, data, context)
 		}
 
-		let childLoop = el.querySelector<HTMLElement>('[data-loop]')
-		while (childLoop) {
+		let childLoop = this.getHyperionsElements(el, 'hyp:loop', 'data-loop')
+		while (childLoop.length > 0) {
 			this.dlog(context, 'fill: child loop detected', childLoop)
-			this.fillLoop(childLoop, data, context)
-			childLoop = el.querySelector<HTMLElement>('[data-loop]')
+			this.fillLoop(childLoop[0], data, context)
+			childLoop = this.getHyperionsElements(el, 'hyp:loop', 'data-loop')
 		}
 
 		// go through every elements that has a attribute to fill
@@ -282,8 +304,20 @@ export default class Hyperions {
 		}
 	}
 
-	private getHyperionsElements(base: HTMLElement = document.body) {
-		return Array.from(base.querySelectorAll<HTMLElement>('*')).filter(this.hasHyperionsAttributes)
+	private getHyperionsElements(base: HTMLElement = document.body, ...attributes: Array<string>) {
+		return Array.from(base.querySelectorAll<HTMLElement>('*')).filter((it) => {
+			if (!this.hasHyperionsAttributes(it)) {
+				return false
+			}
+			let match = attributes.length === 0
+			for (const attr of attributes) {
+				if (it.hasAttribute(attr)) {
+					match = true
+					break
+				}
+			}
+			return match
+		})
 	}
 
 	private hasHyperionsAttributes(item: HTMLElement): boolean {
@@ -488,9 +522,9 @@ export default class Hyperions {
 	}
 
 	private fillLoop(it: HTMLElement, data: object, context: Context) {
-		const path = it.dataset.loop
+		const path = it.getAttribute('hyp:loop') || it.dataset.loop
 		if (!path) {
-			this.dlog(context, 'fillLoop: loop has no `data-loop')
+			this.dlog(context, 'fillLoop: loop has no "data-loop"')
 			return
 		}
 		this.dlog(context, 'fill: loop detected', path)
@@ -519,11 +553,12 @@ export default class Hyperions {
 
 			const child = it.cloneNode(true) as HTMLElement
 			child.removeAttribute('data-loop')
+			child.removeAttribute('hyp:loop')
 
-			let childLoop = child.querySelector<HTMLElement>('[data-loop]')
-			while (childLoop) {
-				this.fillLoop(childLoop, data, currentContext)
-				childLoop = child.querySelector<HTMLElement>('[data-loop]')
+			let childLoop = this.getHyperionsElements(child, 'hyp:loop', 'data-loop')
+			while (childLoop.length > 0) {
+				this.fillLoop(childLoop[0], data, currentContext)
+				childLoop = this.getHyperionsElements(child, 'hyp:loop', 'data-loop')
 			}
 
 			this.fillLoop(child, data, currentContext)

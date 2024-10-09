@@ -29,7 +29,7 @@ const action: Action = ({ hyperions, log, value, options = {}, origin, data = {}
 		locationQuery = null
 	}
 
-	const isArray = origin && 'multiple' in origin.dataset
+	const isArray = origin && ('multiple' in origin.dataset || origin.hasAttribute('hyp:multiple'))
 	const clones = isArray ? objectMap(data, (it) => hyperions.fillTemplate(template, it, options)) : [hyperions.fillTemplate(template, data, options)]
 
 	const location = locationQuery ? locate(origin, locationQuery) : origin
