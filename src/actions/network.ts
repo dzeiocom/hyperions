@@ -10,18 +10,18 @@ const action: Action = async ({ log, prefix, value, data = {}, origin }) => {
 	}
 	const method = prefix.toUpperCase()
 
-	log('put: using method', method)
+	log('using method', method)
 
 	const url = new URL(value, !value.startsWith('http') ? window.location.href : undefined)
 	let body: string | FormData | null = null
 
 	if (method === 'GET') {
-		log('input: adding params to URL, method is GET')
+		log('adding params to URL, method is GET')
 		objectLoop(data, (val, key) => {
 			url.searchParams.set(key, val)
 		})
 	} else if (origin?.getAttribute('enctype') === 'multipart/form-data') {
-		log('input: adding params to body as FormData, element has attribute enctype === multipart/form-data')
+		log('adding params to body as FormData, element has attribute enctype === multipart/form-data')
 		const formData = new FormData()
 		objectLoop(data, (val, key) => {
 			if ((val as any) instanceof FileList) {
@@ -32,12 +32,12 @@ const action: Action = async ({ log, prefix, value, data = {}, origin }) => {
 		})
 		body = formData
 	} else {
-		log('input: adding params to body as JSON')
+		log('adding params to body as JSON')
 		body = JSON.stringify(data)
 	}
 
 	// do the request
-	log('input: fetching', url.toString(), 'with method', method, 'and body', body)
+	log('fetching', url.toString(), 'with method', method, 'and body', body)
 	const res = await fetch(url, {
 		method: method,
 		body: body
@@ -49,7 +49,9 @@ const action: Action = async ({ log, prefix, value, data = {}, origin }) => {
 	}
 
 	// transform the response into JSON
-	return await res.json() as object
+	return {
+		data: await res.json() as object
+	}
 }
 
 export default action

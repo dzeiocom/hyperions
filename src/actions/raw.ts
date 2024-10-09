@@ -1,21 +1,18 @@
 import type { Action } from '../types'
-import { locate } from '../utils'
 
 /**
  * Pouet
  */
-const action: Action = ({ value, origin, hyperions }) => {
+const action: Action = ({ log, options = {}, value }) => {
 	if (!value) {
-		throw new Error('can not trigger hyperion item if it does not exists')
+		return
 	}
+	const data = JSON.parse(value) as object
+	log('Parsed JSON input', data)
 
-	const hypItem = locate(origin, value)
-
-	if (!hypItem) {
-		throw new Error(`Could not find Hyperion element using the query (${value})`)
+	return {
+		data: data
 	}
-
-	hyperions.trigger(hypItem)
 }
 
 export default action
