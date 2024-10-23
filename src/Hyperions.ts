@@ -816,12 +816,12 @@ export default class Hyperions {
 					params[key] = value
 				}
 			})
-		} else if (element.tagName === 'INPUT' && name) { // parse input value into input param
+		} else if ((element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') && name) { // parse input value into input param
 			this.dlog(options, 'input: element is an Input, getting name and value as param')
-			if ((element as HTMLInputElement).type === 'file') {
+			if ((element as HTMLInputElement | HTMLTextAreaElement).type === 'file') {
 				params[name] = (element as HTMLInputElement).files
 			} else {
-				params[name] = (element as HTMLInputElement).value
+				params[name] = (element as HTMLInputElement | HTMLTextAreaElement).value
 			}
 		}
 
