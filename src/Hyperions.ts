@@ -1,4 +1,4 @@
-import { isObject, objectClone, objectGet } from '@dzeio/object-util'
+import { isObject, objectClone, objectGet, objectValues } from '@dzeio/object-util'
 import fill from './actions/fill'
 import hyp from './actions/hyp'
 import network from './actions/network'
@@ -424,7 +424,7 @@ export default class Hyperions {
 		}
 
 		// add default trigger
-		if (triggers.length === 0) {
+		if (triggers.length === 0 && objectValues(modifiers).length === 0) {
 			triggers.push(isForm ? 'submit' : 'click')
 		}
 
@@ -762,8 +762,9 @@ export default class Hyperions {
 	*/
 	private parseOptions(element: HTMLElement): Options {
 		// prepare options
+		const isDebug = element.getAttribute('hyp:debug') || element.dataset.debug
 		const options: Options = {
-			debug: typeof element.dataset.debug === 'string' ? element.dataset.debug || (Math.random() * 100).toFixed(0) : undefined
+			debug: typeof isDebug === 'string' ? isDebug || (Math.random() * 100).toFixed(0) : undefined
 		}
 
 		// parse options
