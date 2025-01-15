@@ -293,7 +293,13 @@ export default class Hyperions {
 	 * initialise hyperion
 	 * @param base the base to query from
 	 */
-	public init(base: HTMLElement = document.body) {
+	public init(base: HTMLElement | DocumentFragment = document.body) {
+		if (base instanceof DocumentFragment) {
+			for (const child of Array.from(base.children)) {
+				this.init(child as HTMLElement)
+			}
+			return
+		}
 		// setup on itself when possible
 		if (this.hasHyperionsAttributes(base)) {
 			this.setupTrigger(base)
