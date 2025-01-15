@@ -293,7 +293,7 @@ export default class Hyperions {
 	 * initialise hyperion
 	 * @param base the base to query from
 	 */
-	private init(base: HTMLElement = document.body) {
+	public init(base: HTMLElement = document.body) {
 		// setup on itself when possible
 		if (this.hasHyperionsAttributes(base)) {
 			this.setupTrigger(base)
