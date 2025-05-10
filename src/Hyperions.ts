@@ -256,7 +256,7 @@ export default class Hyperions {
 	 * @param data the data to fill it with
 	 * @returns the filled element (original changed)
 	 */
-	public fill(el: HTMLElement, data: object, context: Context = { path: [] }) {
+	public fill(el: HTMLElement, data: object, context: Context = { path: [] }, options?: Options & { skipSelf?: boolean }) {
 		this.dlog(context, 'fill: filling', el, data)
 		if (el.dataset.loop || el.getAttribute('hyp:loop')) {
 			this.dlog(context, 'fill: root loop detected', el)
@@ -277,7 +277,7 @@ export default class Hyperions {
 		this.getHyperionsElements(el).forEach((it) => this.fillAttributes(it, data, context))
 
 		// setup the clone to work if it contains Hyperions markup
-		this.init(el)
+		this.init(el, options)
 
 		return el
 	}
@@ -293,9 +293,9 @@ export default class Hyperions {
 	 * initialise hyperion
 	 * @param base the base to query from
 	 */
-	public init(base: HTMLElement = document.body) {
+	public init(base: HTMLElement = document.body, options?: { skipSelf?: boolean }) {
 		// setup on itself when possible
-		if (this.hasHyperionsAttributes(base)) {
+		if (!options?.skipSelf && this.hasHyperionsAttributes(base)) {
 			this.setupTrigger(base)
 		}
 
@@ -590,8 +590,6 @@ export default class Hyperions {
 	private fillAttributes(it: HTMLElement, data: object, context: Context) {
 		// get the raw attribute
 		const attrRaw = it.getAttribute('hyp:attr') || it.getAttribute('hyp:attribute') || it.getAttribute('hyp:attributes') || it.dataset.attribute
-
-
 
 		// handle data-input, data-output, ...
 		for (const attr of this.getElementActions(it)) {

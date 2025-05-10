@@ -15,7 +15,7 @@ const action: Action = ({ hyperions, value, options = {}, data, origin }) => {
 		options.keepDataAttributes = true
 	}
 
-	hyperions.fill(el, data ?? {}, { ...options, path: [] })
+	hyperions.fill(el, data ?? {}, { ...options, path: [] }, { skipSelf: origin === el })
 }
 
 export default action
