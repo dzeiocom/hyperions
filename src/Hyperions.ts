@@ -293,12 +293,21 @@ export default class Hyperions {
 	 * initialise hyperion
 	 * @param base the base to query from
 	 */
-	public init(base: HTMLElement = document.body, options?: { skipSelf?: boolean }) {
+	public init(base: HTMLElement | DocumentFragment = document.body, options?: { skipSelf?: boolean }) {
+		// handle templates
+		if (base instanceof DocumentFragment) {
+			for (const child of Array.from(base.children)) {
+				this.init(child as HTMLElement, options)
+			}
+			return
+		}
+
 		// setup on itself when possible
 		if (!options?.skipSelf && this.hasHyperionsAttributes(base)) {
 			this.setupTrigger(base)
 		}
 
+		// run on childs
 		for (const item of this.getHyperionsElements(base)) {
 			this.setupTrigger(item)
 		}
