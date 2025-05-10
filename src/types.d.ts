@@ -70,6 +70,19 @@ export interface ActionContext {
 	log(...items: Array<any>): void
 }
 
+export interface ExecContext {
+	path: Array<string | number>
+	data: object
+}
+
+export interface AttributeContext extends ExecContext {
+	hyperions: Hyperions
+	element: HTMLElement
+	process(element: HTMLElement, execContext?: Partial<ExecContext>, processSelf?: boolean): MaybePromise<void>
+	options?: Options
+	log(...items: Array<any>): void
+}
+
 export interface Modifiers {
 	once?: boolean
 	load?: boolean
@@ -88,7 +101,15 @@ export interface ActionResult {
 	continue?: boolean
 }
 
+export interface AttributeResult {
+	/**
+	 * if set to true it will run inside childs of the element
+	 */
+	continue?: boolean
+}
+
 export type Action = (ctx: ActionContext) => MaybePromise<ActionResult | void>
+export type Attribute = (ctx: AttributeContext) => MaybePromise<AttributeResult | void>
 export type InputAction = (element?: HTMLElement, input?: object, options?: Options) => MaybePromise<object>
 export type OutputAction = (element?: HTMLElement, output?: object, options?: Options) => MaybePromise
 

@@ -43,7 +43,8 @@
 		"prepublishOnly": "npm run build",
 		"build": "tsup ./src/Hyperions.ts --format cjs,esm --dts --clean && tsup ./src/Hyperions.ts --format iife --global-name Hyperions --sourcemap",
 		"test": "jest --coverage",
-		"lint": "eslint src"
+		"lint": "eslint src",
+		"dev": "tsup ./src/Hyperions.ts --format cjs,esm --dts --clean --watch"
 	},
 	"files": [
 		"dist",

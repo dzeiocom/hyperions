@@ -6,8 +6,11 @@ import raw from './actions/raw'
 import run from './actions/run'
 import template from './actions/template'
 import { ATTRIBUTES } from './consts'
-import type { Action, ActionContext, ActionResult, Context, Events, InputAction, Modifiers, Options, OutputAction } from './types'
-import { betterSplit } from './utils'
+import type { Action, ActionContext, ActionResult, Attribute, AttributeContext, Context, Events, ExecContext, InputAction, Modifiers, Options, OutputAction } from './types'
+import { betterSplit, getChildElements } from './utils'
+import { loop } from './attrs/loop'
+import attrs from './attrs/attrs'
+import ifElse from './attrs/if-else'
 
 // export types for external usage
 export type * as types from './types'
@@ -35,6 +38,13 @@ export default class Hyperions {
 
 		fill: fill,
 		template: template
+	}
+
+	private attributes: Record<string, Attribute> = {
+		'*': attrs,
+		loop: loop,
+		if: ifElse,
+		else: ifElse
 	}
 
 	/**
@@ -94,6 +104,11 @@ export default class Hyperions {
 	 */
 	public addInputAction(action: string, ev: InputAction | null) {
 		return this.addAction(`run:${action}`, ev ? (ctx) => ev(ctx.origin, ctx.data, ctx.options) : ev)
+	}
+
+	public addAttribute(attribute: string, fn: Attribute) {
+		this.attributes[attribute] = fn
+		return this
 	}
 
 	/**
@@ -249,6 +264,36 @@ export default class Hyperions {
 		return this.fill(node.firstElementChild as HTMLElement, data, { ...options, path: [] })
 	}
 
+	public async fillElement(element: HTMLElement, ctx: ExecContext, options?: Options) {
+		const context: AttributeContext = {
+			hyperions: this,
+			element,
+			process: (element, newContext, processSelf = true) => {
+				if (processSelf) {
+					this.fillElement(element, Object.assign({}, ctx, newContext))
+				}
+				this.fill(element, newContext?.data ?? ctx.data, { path: newContext?.path ?? ctx.path }, options)
+			},
+			options,
+			log: (...params) => {
+				this.dlog(options, ...params)
+			},
+			...ctx
+		}
+
+		for (const attr of Array.from(element.attributes)) {
+			if (attr.name.startsWith('hyp:')) {
+				const res1 = await this.attributes[attr.name.slice(4)]?.(context)
+				const res2 = await this.attributes['*']?.(context)
+				if (res1?.continue && res2?.continue) {
+					for (const child of Array.from(element.children)) {
+						this.fill(child as HTMLElement, ctx.data, { path: context.path }, options)
+					}
+				}
+			}
+		}
+	}
+
 	/**
 	 * Fill an HTMLElement with data
 	 *
@@ -258,23 +303,17 @@ export default class Hyperions {
 	 */
 	public fill(el: HTMLElement, data: object, context: Context = { path: [] }, options?: Options & { skipSelf?: boolean }) {
 		this.dlog(context, 'fill: filling', el, data)
-		if (el.dataset.loop || el.getAttribute('hyp:loop')) {
-			this.dlog(context, 'fill: root loop detected', el)
-			this.fillLoop(el, data, context)
-		}
 
-		let childLoop = this.getHyperionsElements(el, 'hyp:loop', 'data-loop')
-		while (childLoop.length > 0) {
-			this.dlog(context, 'fill: child loop detected', childLoop)
-			this.fillLoop(childLoop[0], data, context)
-			childLoop = this.getHyperionsElements(el, 'hyp:loop', 'data-loop')
-		}
 
-		// go through every elements that has a attribute to fill
-		this.processIfElse(el, data)
-		this.fillAttributes(el, data, context)
-		// biome-ignore lint/complexity/noForEach: <explanation>
-		this.getHyperionsElements(el).forEach((it) => this.fillAttributes(it, data, context))
+		// delete copies
+		// el.querySelectorAll('[hyp\\:copy]').forEach((it) => it.remove())
+
+		const list = getChildElements(el)
+
+		for (const child of list) {
+			this.dlog(context, 'fill: child detected', child)
+			this.fillElement(child, { data, path: context.path }, context)
+		}
 
 		// setup the clone to work if it contains Hyperions markup
 		this.init(el, options)
@@ -505,132 +544,7 @@ export default class Hyperions {
 		}
 	}
 
-	private processIfElse(it: HTMLElement, data: object, context: Context = { path: [] }) {
-		const items = Array.from(it.querySelectorAll<HTMLElement>('[data-if],[data-else]'))
-		for (const item of items) {
-			const dataIf = item.dataset.if
-			const dataElse = item.dataset.else
-
-			if (dataIf) {
-				const value = this.findValue(dataIf, data, context.path)
-				if (!value) {
-					item.remove()
-				} else {
-					item.removeAttribute('data-if')
-				}
-			}
-			if (dataElse) {
-				const value = this.findValue(dataElse, data, context.path)
-				if (value) {
-					item.remove()
-				} else {
-					item.removeAttribute('data-else')
-				}
-			}
-		}
-	}
-
-	private fillLoop(it: HTMLElement, data: object, context: Context) {
-		const path = it.getAttribute('hyp:loop') || it.dataset.loop
-		if (!path) {
-			this.dlog(context, 'fillLoop: loop has no "data-loop"')
-			return
-		}
-		this.dlog(context, 'fill: loop detected', path)
-
-		// get the sub element
-		let subElement: Array<unknown>
-		if (path === 'this') {
-			this.dlog(context, 'fillLoop: loop is `this`, looping on the current data', data)
-			subElement = data as Array<unknown>
-		} else {
-			subElement = objectGet(data, path)!
-		}
-
-		for (let idx = 0; idx < subElement.length; idx++) {
-
-			const currentContext = objectClone(context)
-
-			// update context with new value
-			if (path === 'this') {
-				currentContext.path = [...currentContext.path, idx]
-			} else {
-				currentContext.path = [...currentContext.path, path, idx]
-			}
-
-			this.dlog(context, 'fillLoop: loop context', context)
-
-			const child = it.cloneNode(true) as HTMLElement
-			child.removeAttribute('data-loop')
-			child.removeAttribute('hyp:loop')
-
-			let childLoop = this.getHyperionsElements(child, 'hyp:loop', 'data-loop')
-			while (childLoop.length > 0) {
-				this.fillLoop(childLoop[0], data, currentContext)
-				childLoop = this.getHyperionsElements(child, 'hyp:loop', 'data-loop')
-			}
-
-			this.fillLoop(child, data, currentContext)
-			const newData = { ...data, loop: { index: idx } }
-
-			// go through every elements that has a attribute to fill
-			this.processIfElse(child, newData, currentContext)
-			this.fillAttributes(child, newData, currentContext)
-			// biome-ignore lint/complexity/noForEach: <explanation>
-			const items = Array.from(child.querySelectorAll<HTMLElement>('[data-attribute],[data-input],[data-output]'))
-			for (const item of items) {
-				this.fillAttributes(item, newData, currentContext)
-			}
-			// child.querySelectorAll<HTMLElement>('[data-attribute],[data-input],[data-output]').forEach((it) => this.fillAttrs(it, sub))
-
-			it.after(child)
-		}
-
-		it.remove()
-	}
-
-	/**
-	 * fill the attributes to the element
-	 * @param {HTMLElement} it the element to fill
-	 * @param {object} data the data link to this element
-	 * @param {Context} context the context needed to resolve inside data
-	 * @returns the filled element
-	 */
-	private fillAttributes(it: HTMLElement, data: object, context: Context) {
-		// get the raw attribute
-		const attrRaw = it.getAttribute('hyp:attr') || it.getAttribute('hyp:attribute') || it.getAttribute('hyp:attributes') || it.dataset.attribute
-
-		// handle data-input, data-output, ...
-		for (const attr of this.getElementActions(it)) {
-			if (attr.startsWith('hyp:')) {
-				const value = it.getAttribute(attr) ?? ''
-				it.setAttribute(attr, this.parseValue(value, data, context) as string ?? value)
-			} else {
-				const value = it.dataset[attr]
-				this.fillAttribute(it, `data-${attr}:${value}`, data, context)
-			}
-		}
-
-		// skip if not contains a data-attribute
-		if (typeof attrRaw !== 'string') {
-			return
-		}
-
-		// parse into an array
-		const attrs: Array<string> = betterSplit(attrRaw)
-
-		// loop through each attributes
-		for (const attr of attrs) {
-			this.fillAttribute(it, attr, data, context)
-		}
-
-		// idk if necessary but remove the attributes from the final HTML
-		if (!context.keepDataAttributes) {
-			it.removeAttribute('data-attribute')
-		}
-	}
-
-	private fillAttribute(it: HTMLElement, attribute: string, data: object, context: Context) {
+	public fillAttribute(it: HTMLElement, attribute: string, data: object, context: Context) {
 		// decode attribute
 		const { prefix = 'text', value } = this.decodeParam(attribute)
 
@@ -698,7 +612,7 @@ export default class Hyperions {
 	 * @param {Contexta} context the path inside this object with
 	 * @returns {unknown | undefined} the found value or undefined
 	 */
-	private parseValue(str: string, data: object, context: Context): unknown | undefined {
+	public parseValue(str: string, data: object, context: Context): unknown | undefined {
 		let value = str
 
 		if (typeof value === 'undefined' || value === null) {
@@ -733,7 +647,7 @@ export default class Hyperions {
 	* @param context the location of the data
 	* @returns the found value or undefined if not found
 	*/
-	private findValue(key: string, data: object, context: Array<string | number> = []): unknown {
+	public findValue(key: string, data: object, context: Array<string | number> = []): unknown {
 		if (key.startsWith('this')) {
 			const fromContext: unknown = objectGet(data, context) ?? data
 			let sliced = key.slice(4)

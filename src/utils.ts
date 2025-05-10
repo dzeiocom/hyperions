@@ -62,3 +62,31 @@ export function betterSplit(input = ''): Array<string> {
 
 	return attrs
 }
+
+/**
+ * Return hyperion elements that are direct children of the given element
+ *
+ * @param {HTMLElement} el the element to get the child elements of
+ * @returns {Array<HTMLElement>} the child elements
+ */
+export function getChildElements(el: HTMLElement): Array<HTMLElement> {
+	const rootList: Array<HTMLElement> = []
+
+	const childElements = Array.from(el.children) as Array<HTMLElement>
+	loop: for (const child of childElements) {
+		// check if child has an attribute that starts with `hyp:`
+		if (child.attributes && child.attributes.length > 0) {
+			for (const attr of Array.from(child.attributes)) {
+				if (attr.name.startsWith('hyp:')) {
+					rootList.push(child)
+					continue loop
+				}
+			}
+		}
+
+		// concat child elements
+		rootList.push(...getChildElements(child))
+	}
+
+	return rootList
+}
