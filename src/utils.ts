@@ -35,7 +35,7 @@ export function locate<Element extends HTMLElement = HTMLElement>(asker: HTMLEle
  * @param {string} input the string to split
  * @returns {Array<string>} the splitted string
  */
-export function betterSplit(input = ''): Array<string> {
+export function betterSplit(input: string = ''): Array<string> {
 	const attrs: Array<string> = []
 	let quoteCount = 0
 	let current = ''
@@ -77,7 +77,7 @@ export function getChildElements(el: HTMLElement): Array<HTMLElement> {
 		// check if child has an attribute that starts with `hyp:`
 		if (child.attributes && child.attributes.length > 0) {
 			for (const attr of Array.from(child.attributes)) {
-				if (attr.name.startsWith('hyp:')) {
+				if (attr.name.startsWith('hyp:') || attr.name === 'data-input' || attr.name === 'data-output') {
 					rootList.push(child)
 					continue loop
 				}

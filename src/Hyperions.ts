@@ -285,8 +285,8 @@ export default class Hyperions {
 			if (attr.name.startsWith('hyp:')) {
 				const res1 = await this.attributes[attr.name.slice(4)]?.(context)
 				const res2 = await this.attributes['*']?.(context)
-				if (res1?.continue && res2?.continue) {
-					for (const child of Array.from(element.children)) {
+				if ((res1?.continue ?? true) && (res2?.continue ?? true)) {
+					for (const child of getChildElements(element)) {
 						this.fill(child as HTMLElement, ctx.data, { path: context.path }, options)
 					}
 				}
@@ -307,6 +307,8 @@ export default class Hyperions {
 
 		// delete copies
 		// el.querySelectorAll('[hyp\\:copy]').forEach((it) => it.remove())
+
+		this.fillElement(el, { data, path: context.path }, context)
 
 		const list = getChildElements(el)
 
