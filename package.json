@@ -1,6 +1,6 @@
 {
 	"name": "hyperions",
-	"version": "1.2.1",
+	"version": "1.2.2",
 	"description": "A central hub for processing and managing complex data sets",
 	"repository": {
 		"type": "git",
