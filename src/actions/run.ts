@@ -7,7 +7,7 @@ import type { Action } from '../types'
 const run: Action = (ctx) => {
 
 	// clone context
-	const context = objectClone(ctx)
+	const context = objectClone(ctx, { deep: false })
 	context.prefix = `run:${ctx.value}`
 	context.value = ''
 
