@@ -5,12 +5,12 @@ import network from './actions/network'
 import raw from './actions/raw'
 import run from './actions/run'
 import template from './actions/template'
+import attrs from './attrs/attrs'
+import ifElse from './attrs/if-else'
+import { loop } from './attrs/loop'
 import { ATTRIBUTES } from './consts'
 import type { Action, ActionContext, ActionResult, Attribute, AttributeContext, Context, Events, ExecContext, InputAction, Modifiers, Options, OutputAction } from './types'
 import { betterSplit, getChildElements } from './utils'
-import { loop } from './attrs/loop'
-import attrs from './attrs/attrs'
-import ifElse from './attrs/if-else'
 
 // export types for external usage
 export type * as types from './types'
@@ -281,17 +281,34 @@ export default class Hyperions {
 			...ctx
 		}
 
+		// loop through this element attributes
+		let fillChilds = true
 		for (const attr of Array.from(element.attributes)) {
+
+			// check for hyp elements
 			if (attr.name.startsWith('hyp:')) {
+
+				// run actions
 				const res1 = await this.attributes[attr.name.slice(4)]?.(context)
 				const res2 = await this.attributes['*']?.(context)
-				if ((res1?.continue ?? true) && (res2?.continue ?? true)) {
-					for (const child of getChildElements(element)) {
-						this.fill(child as HTMLElement, ctx.data, { path: context.path }, options)
-					}
+
+				if (!(res1?.fillChilds ?? true) || !(res2?.fillChilds ?? true)) {
+					fillChilds = false
+				}
+
+				if (!(res1?.continue ?? true) || !(res2?.continue ?? true)) {
+					break
 				}
 			}
 		}
+
+		if (fillChilds) {
+			// fill childs
+			for (const child of getChildElements(element)) {
+				this.fill(child as HTMLElement, ctx.data, { path: context.path }, options)
+			}
+		}
+
 	}
 
 	/**

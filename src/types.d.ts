@@ -103,9 +103,14 @@ export interface ActionResult {
 
 export interface AttributeResult {
 	/**
-	 * if set to true it will run inside childs of the element
+	 * @default [true] if set to false it won't run the next attributes
 	 */
 	continue?: boolean
+
+	/**
+	 * @default [true] if set to false, childs won't be run
+	 */
+	fillChilds?: boolean
 }
 
 export type Action = (ctx: ActionContext) => MaybePromise<ActionResult | void>
