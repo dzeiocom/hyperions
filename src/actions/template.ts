@@ -4,7 +4,7 @@ import type { Action } from '../types'
 import { betterSplit, locate } from '../utils'
 
 // eslint-disable-next-line complexity
-const action: Action = ({ hyperions, log, value, options = {}, origin, data = {} }) => {
+const action: Action = async ({ hyperions, log, value, options = {}, origin, data = {} }) => {
 	let [
 		templateQuery,
 		locationQuery = null,
@@ -30,7 +30,7 @@ const action: Action = ({ hyperions, log, value, options = {}, origin, data = {}
 	}
 
 	const isArray = origin && ('multiple' in origin.dataset || origin.hasAttribute('hyp:multiple'))
-	const clones = isArray ? objectMap(data, (it) => hyperions.fillTemplate(template, it, options)) : [hyperions.fillTemplate(template, data, options)]
+	const clones = await Promise.all(isArray ? objectMap(data, (it) => hyperions.fillTemplate(template, it, options)) : [hyperions.fillTemplate(template, data, options)])
 
 	const location = locationQuery ? locate(origin, locationQuery) : origin
 

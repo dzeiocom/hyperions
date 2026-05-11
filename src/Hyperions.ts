@@ -252,7 +252,7 @@ export default class Hyperions {
 	 * @param data the data to filel with
 	 * @returns the filled HTMLElement
 	 */
-	public fillTemplate(template: HTMLTemplateElement, data: object, options?: Options): HTMLElement {
+	public async fillTemplate(template: HTMLTemplateElement, data: object, options?: Options): Promise<HTMLElement> {
 		this.dlog(options, 'fill: cloning template')
 		// clone the template
 		const node = template.content.cloneNode(true) as DocumentFragment | HTMLElement
@@ -268,11 +268,11 @@ export default class Hyperions {
 		const context: AttributeContext = {
 			hyperions: this,
 			element,
-			process: (element, newContext, processSelf = true) => {
+			process: async (element, newContext, processSelf = true) => {
 				if (processSelf) {
-					this.fillElement(element, Object.assign({}, ctx, newContext))
+					await this.fillElement(element, Object.assign({}, ctx, newContext))
 				}
-				this.fill(element, newContext?.data ?? ctx.data, { path: newContext?.path ?? ctx.path }, options)
+				await this.fill(element, newContext?.data ?? ctx.data, { path: newContext?.path ?? ctx.path }, options)
 			},
 			options,
 			log: (...params) => {
@@ -318,20 +318,20 @@ export default class Hyperions {
 	 * @param data the data to fill it with
 	 * @returns the filled element (original changed)
 	 */
-	public fill(el: HTMLElement, data: object, context: Context = { path: [] }, options?: Options & { skipSelf?: boolean }) {
+	public async fill(el: HTMLElement, data: object, context: Context = { path: [] }, options?: Options & { skipSelf?: boolean }) {
 		this.dlog(context, 'fill: filling', el, data)
 
 
 		// delete copies
 		// el.querySelectorAll('[hyp\\:copy]').forEach((it) => it.remove())
 
-		this.fillElement(el, { data, path: context.path }, context)
+		await this.fillElement(el, { data, path: context.path }, context)
 
 		const list = getChildElements(el)
 
 		for (const child of list) {
 			this.dlog(context, 'fill: child detected', child)
-			this.fillElement(child, { data, path: context.path }, context)
+			await this.fillElement(child, { data, path: context.path }, context)
 		}
 
 		// setup the clone to work if it contains Hyperions markup
@@ -642,7 +642,8 @@ export default class Hyperions {
 			return this.findValue(value, data, context.path)
 		}
 
-		let res = /\{(.*?)\}/g.exec(value)
+		// skip items with `:` as they are JSON objects
+		let res = /\{([^:]*?)\}/g.exec(value)
 		while (res && res.length >= 2) {
 			const key = res[1]
 			const tmp = this.findValue(key, data, context.path)
